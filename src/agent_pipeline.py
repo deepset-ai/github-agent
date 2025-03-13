@@ -12,14 +12,12 @@ from haystack_integrations.components.generators.anthropic.chat.chat_generator i
 from haystack_experimental.components.agents import Agent
 from haystack_experimental.tools.component_tool import ComponentTool
 from haystack_experimental.tools.from_function import tool
-
 # Import from local modules with correct paths
-from src.agent_prompts.repo_viewer_tool import repo_viewer_description
-from src.agent_prompts.system_prompt import agent_system_prompt
-from src.agent_components.repo_viewer import GithubRepositoryViewer
-from src.agent_components.issue_viewer import GithubIssueViewer
-from src.agent_components.issue_commenter import GithubIssueCommenter
-
+from agent_prompts.repo_viewer_tool import repo_viewer_description
+from agent_prompts.system_prompt import agent_system_prompt
+from agent_components.repo_viewer import GithubRepositoryViewer
+from agent_components.issue_viewer import GithubIssueViewer
+from agent_components.issue_commenter import GithubIssueCommenter
 
 repo_viewer_schema = {
     "properties": {
@@ -85,22 +83,9 @@ Issue from: {{ url }}
 {% endfor %}
 """
 
-issue_builder = ChatPromptBuilder(template=[ChatMessage.from_user(issue_template)])
-
-## Agent
-chat_generator = AnthropicChatGenerator(model="claude-3-7-sonnet-20250219", generation_kwargs={"max_tokens": 8000})
-
-issue_resolver_agent = Agent(
-    chat_generator=chat_generator,
-    system_prompt=agent_system_prompt,
-    tools=[github_repository_viewer_tool, write_github_comment],
-    exit_condition="write_github_comment",
-    state_schema={"documents": {"type": List[Document]}},
-)
-
 def agent_pipe():
     issue_builder = ChatPromptBuilder(template=[ChatMessage.from_user(issue_template)])
-
+    
     ## Agent
     chat_generator = AnthropicChatGenerator(model="claude-3-7-sonnet-20250219", generation_kwargs={"max_tokens": 8000})
 
@@ -119,7 +104,3 @@ def agent_pipe():
     issue_resolver.connect("issue_viewer.documents", "issue_builder.documents")
     issue_resolver.connect("issue_builder.prompt", "issue_resolver_agent.messages")
     return issue_resolver
-
-issue_url = "https://github.com/deepset-ai/haystack-core-integrations/issues/1268"
-result = agent_pipe().run({"url": issue_url})
-print(result)

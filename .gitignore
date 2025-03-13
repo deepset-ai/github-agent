@@ -167,5 +167,4 @@ cython_debug/
 # Add any project-specific files or directories you want to ignore
 
 # Hayhooks specific
-pipelines/*/src/__pycache__/
-pipelines/*/__pycache__/ 
+pipelines/
