@@ -13,11 +13,12 @@ from haystack_experimental.components.agents import Agent
 from haystack_experimental.tools.component_tool import ComponentTool
 from haystack_experimental.tools.from_function import tool
 
-from agent_prompts.repo_viewer_tool import repo_viewer_description
-from agent_prompts.system_prompt import agent_system_prompt
-from agent_components.repo_viewer import GithubRepositoryViewer
-from agent_components.issue_viewer import GithubIssueViewer
-from agent_components.issue_commenter import GithubIssueCommenter
+# Import from local modules with correct paths
+from src.agent_prompts.repo_viewer_tool import repo_viewer_description
+from src.agent_prompts.system_prompt import agent_system_prompt
+from src.agent_components.repo_viewer import GithubRepositoryViewer
+from src.agent_components.issue_viewer import GithubIssueViewer
+from src.agent_components.issue_commenter import GithubIssueCommenter
 
 
 repo_viewer_schema = {
