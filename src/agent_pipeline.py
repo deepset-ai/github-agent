@@ -13,26 +13,20 @@ from haystack_experimental.components.agents import Agent
 from haystack_experimental.tools.component_tool import ComponentTool
 from haystack_experimental.tools.from_function import tool
 # Import from local modules with correct paths
-from agent_prompts.repo_viewer_tool import repo_viewer_description
 from agent_prompts.system_prompt import agent_system_prompt
 from agent_components.repo_viewer import GithubRepositoryViewer
 from agent_components.issue_viewer import GithubIssueViewer
 from agent_components.issue_commenter import GithubIssueCommenter
 
-repo_viewer_schema = {
-    "properties": {
-        "repo": {
-            "type": "string",
-            "description": "The owner/repository_name that you want to view."
-        },
-        "path": {
-            "type": "string",
-            "description": "Path to directory or file to view. Defaults to repository root.",
-        }
-    },
-    "required": ["repo"],
-    "type": "object"
-}
+# import logging
+# from haystack import tracing
+# from haystack.tracing.logging_tracer import LoggingTracer
+
+# logging.basicConfig(format="%(levelname)s - %(name)s -  %(message)s", level=logging.WARNING)
+# logging.getLogger("haystack").setLevel(logging.DEBUG)
+
+# tracing.tracer.is_content_tracing_enabled = True # to enable tracing/logging content (inputs/outputs)
+# tracing.enable_tracing(LoggingTracer(tags_color_strings={"haystack.component.input": "\x1b[35m", "haystack.component.name": "\x1b[1;34m"}))
 
 def doc_to_string(documents) -> str:
     """
@@ -53,14 +47,16 @@ def doc_to_string(documents) -> str:
 
 github_repository_viewer_tool = ComponentTool(
     name="github_repository_viewer",
-    description=repo_viewer_description,
-    parameters=repo_viewer_schema,
     component=GithubRepositoryViewer(),
     outputs={
         "message": {"source": "documents", "handler": doc_to_string},
         "documents": {"source": "documents"},
-    },
-    inputs={}
+    }
+)
+
+github_repository_commenter_tool = ComponentTool(
+    name="write_github_comment",
+    component=GithubIssueCommenter()
 )
 
 @tool
@@ -68,22 +64,22 @@ def write_github_comment(comment: str) -> str:
     """
     Use this to create a comment on Github once you finished your exploration.
     """
-    # WRITE COMMENT
+    # WRITE COMMENT ON GITHUB
     return comment
 
-issue_template = """
-Issue from: {{ url }}
-{% for document in documents %}
-    {% if loop.index == 1 %}
-    **Title: {{ document.meta.title }}**
-    {% endif %}
-    <issue-comment>
-    {{document.content}}
-    </issue-comment>
-{% endfor %}
-"""
-
 def agent_pipe():
+    github_issue_viewer = GithubIssueViewer()
+    issue_template = """
+    Issue from: {{ url }}
+    {% for document in documents %}
+        {% if loop.index == 1 %}
+        **Title: {{ document.meta.title }}**
+        {% endif %}
+        <issue-comment>
+        {{document.content}}
+        </issue-comment>
+    {% endfor %}
+    """
     issue_builder = ChatPromptBuilder(template=[ChatMessage.from_user(issue_template)])
     
     ## Agent
@@ -92,12 +88,12 @@ def agent_pipe():
     issue_resolver_agent = Agent(
         chat_generator=chat_generator,
         system_prompt=agent_system_prompt,
-        tools=[github_repository_viewer_tool, write_github_comment],
+        tools=[github_repository_viewer_tool, github_repository_commenter_tool],
         exit_condition="write_github_comment",
         state_schema={"documents": {"type": List[Document]}},
     )
     issue_resolver = Pipeline()
-    issue_resolver.add_component("issue_viewer", GithubIssueViewer())
+    issue_resolver.add_component("issue_viewer", github_issue_viewer)
     issue_resolver.add_component("issue_builder", issue_builder)
     issue_resolver.add_component("issue_resolver_agent", issue_resolver_agent)
 
