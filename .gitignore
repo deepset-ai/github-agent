@@ -163,8 +163,7 @@ cython_debug/
 .vscode/
 *.code-workspace
 
-# Project specific
-# Add any project-specific files or directories you want to ignore
-
 # Hayhooks specific
 pipelines/
+
+.DS_Store
