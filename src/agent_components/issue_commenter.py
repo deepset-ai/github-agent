@@ -132,7 +132,7 @@ class GithubIssueCommenter:
         deserialize_secrets_inplace(init_params, keys=["github_token"])
         return default_from_dict(cls, data)
 
-    @component.output_types(success=bool)
+    @component.output_types(success=bool, comment=Optional[str])
     def run(self, url: str, comment: str) -> dict:
         """
         Post a comment to a GitHub issue.
@@ -144,7 +144,7 @@ class GithubIssueCommenter:
         try:
             owner, repo, issue_number = self._parse_github_url(url)
             success = self._post_comment(owner, repo, issue_number, comment)
-            return {"success": success}
+            return {"success": success, "comment": comment}
 
         except Exception as e:
             if self.raise_on_failure:
