@@ -45,28 +45,6 @@ def doc_to_string(documents) -> str:
 
     return result_str
 
-github_repository_viewer_tool = ComponentTool(
-    name="github_repository_viewer",
-    component=GithubRepositoryViewer(),
-    outputs={
-        "message": {"source": "documents", "handler": doc_to_string},
-        "documents": {"source": "documents"},
-    }
-)
-
-github_repository_commenter_tool = ComponentTool(
-    name="write_github_comment",
-    component=GithubIssueCommenter()
-)
-
-@tool
-def write_github_comment(comment: str) -> str:
-    """
-    Use this to create a comment on Github once you finished your exploration.
-    """
-    # WRITE COMMENT ON GITHUB
-    return comment
-
 def agent_pipe():
     github_issue_viewer = GithubIssueViewer()
     issue_template = """
@@ -84,6 +62,19 @@ def agent_pipe():
     
     ## Agent
     chat_generator = AnthropicChatGenerator(model="claude-3-7-sonnet-20250219", generation_kwargs={"max_tokens": 8000})
+    
+    github_repository_viewer_tool = ComponentTool(
+    name="github_repository_viewer",
+    component=GithubRepositoryViewer(),
+    outputs={
+        "message": {"source": "documents", "handler": doc_to_string},
+        "documents": {"source": "documents"},
+    })
+
+    github_repository_commenter_tool = ComponentTool(
+        name="write_github_comment",
+        component=GithubIssueCommenter()
+    )
 
     issue_resolver_agent = Agent(
         chat_generator=chat_generator,
@@ -92,6 +83,7 @@ def agent_pipe():
         exit_condition="write_github_comment",
         state_schema={"documents": {"type": List[Document]}},
     )
+    
     issue_resolver = Pipeline()
     issue_resolver.add_component("issue_viewer", github_issue_viewer)
     issue_resolver.add_component("issue_builder", issue_builder)
