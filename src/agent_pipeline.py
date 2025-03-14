@@ -18,13 +18,13 @@ from agent_components.repo_viewer import GithubRepositoryViewer
 from agent_components.issue_viewer import GithubIssueViewer
 from agent_components.issue_commenter import GithubIssueCommenter
 
-# import logging
+import logging
+
+logging.basicConfig(format="%(levelname)s - %(name)s -  %(message)s", level=logging.WARNING)
+logging.getLogger("haystack").setLevel(logging.DEBUG)
+
 # from haystack import tracing
 # from haystack.tracing.logging_tracer import LoggingTracer
-
-# logging.basicConfig(format="%(levelname)s - %(name)s -  %(message)s", level=logging.WARNING)
-# logging.getLogger("haystack").setLevel(logging.DEBUG)
-
 # tracing.tracer.is_content_tracing_enabled = True # to enable tracing/logging content (inputs/outputs)
 # tracing.enable_tracing(LoggingTracer(tags_color_strings={"haystack.component.input": "\x1b[35m", "haystack.component.name": "\x1b[1;34m"}))
 

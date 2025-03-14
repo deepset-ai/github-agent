@@ -1,4 +1,4 @@
+haystack-ai
 anthropic-haystack
 hayhooks
-
 docstring-parser
