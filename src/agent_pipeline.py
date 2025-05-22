@@ -43,23 +43,6 @@ def doc_to_string(documents) -> str:
 
     return result_str
 
-def message_handler(documents) -> str:
-    """
-    Handles the tool output before conversion to ChatMessage.
-    """
-    result_str = ""
-    for document in documents:
-        if document.meta["type"] in ["file", "dir", "error"]:
-            result_str += document.content + "\n"
-        else:
-            result_str += f"File Content for {document.meta['path']}\n\n"
-            result_str += document.content
-
-    if len(result_str) > 150_000:
-        result_str = result_str[:150_000] + "...(large file can't be fully displayed)"
-
-    return result_str
-
 def agent_pipe():
     github_issue_viewer = GithubIssueViewer()
     issue_template = """
@@ -82,7 +65,7 @@ def agent_pipe():
     name="github_repository_viewer",
     component=GithubRepositoryViewer(),
     outputs_to_state={"documents": {"source": "documents"}},
-    outputs_to_string={"source": "documents", "handler": message_handler},
+    outputs_to_string={"source": "documents", "handler": doc_to_string},
     )
 
     github_repository_commenter_tool = ComponentTool(
