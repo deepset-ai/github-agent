@@ -4,14 +4,12 @@ from typing import List
 
 # Standard Haystack imports
 from haystack import Pipeline
+from haystack.components.agents import Agent
 from haystack.components.builders import ChatPromptBuilder
 from haystack.dataclasses import ChatMessage, Document
+from haystack.tools.component_tool import ComponentTool
 from haystack_integrations.components.generators.anthropic.chat.chat_generator import AnthropicChatGenerator
 
-# Experimental imports needed for our Agent
-from haystack_experimental.components.agents import Agent
-from haystack_experimental.tools.component_tool import ComponentTool
-from haystack_experimental.tools.from_function import tool
 # Import from local modules with correct paths
 from agent_prompts.system_prompt import agent_system_prompt
 from agent_components.repo_viewer import GithubRepositoryViewer
@@ -29,6 +27,23 @@ logging.getLogger("haystack").setLevel(logging.DEBUG)
 # tracing.enable_tracing(LoggingTracer(tags_color_strings={"haystack.component.input": "\x1b[35m", "haystack.component.name": "\x1b[1;34m"}))
 
 def doc_to_string(documents) -> str:
+    """
+    Handles the tool output before conversion to ChatMessage.
+    """
+    result_str = ""
+    for document in documents:
+        if document.meta["type"] in ["file", "dir", "error"]:
+            result_str += document.content + "\n"
+        else:
+            result_str += f"File Content for {document.meta['path']}\n\n"
+            result_str += document.content
+
+    if len(result_str) > 150_000:
+        result_str = result_str[:150_000] + "...(large file can't be fully displayed)"
+
+    return result_str
+
+def message_handler(documents) -> str:
     """
     Handles the tool output before conversion to ChatMessage.
     """
@@ -66,10 +81,9 @@ def agent_pipe():
     github_repository_viewer_tool = ComponentTool(
     name="github_repository_viewer",
     component=GithubRepositoryViewer(),
-    outputs={
-        "message": {"source": "documents", "handler": doc_to_string},
-        "documents": {"source": "documents"},
-    })
+    outputs_to_state={"documents": {"source": "documents"}},
+    outputs_to_string={"source": "documents", "handler": message_handler},
+    )
 
     github_repository_commenter_tool = ComponentTool(
         name="write_github_comment",
@@ -80,7 +94,7 @@ def agent_pipe():
         chat_generator=chat_generator,
         system_prompt=agent_system_prompt,
         tools=[github_repository_viewer_tool, github_repository_commenter_tool],
-        exit_condition="write_github_comment",
+        exit_conditions=["write_github_comment"],
         state_schema={"documents": {"type": List[Document]}},
     )
     
